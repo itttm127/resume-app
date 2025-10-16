@@ -1,6 +1,5 @@
-import { useState } from "react";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
-import { CssBaseline, Container, Typography, Button } from "@mui/material";
+import { CssBaseline } from "@mui/material";
 import MainScreen from "./apps/main-creen";
 
 const theme = createTheme({
