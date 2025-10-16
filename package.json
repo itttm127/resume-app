@@ -1,0 +1,61 @@
+{
+  "name": "react-mui-starter",
+  "private": true,
+  "version": "0.0.1",
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.11.1",
+    "@emotion/styled": "^11.11.0",
+    "@mui/material": "^5.14.20",
+    "convertapi": "^1.15.0",
+    "convertapi-js": "^1.0.8",
+    "docx": "^9.5.1",
+    "docxtemplater": "^3.66.0",
+    "file-saver": "^2.0.5",
+    "html2pdf.js": "^0.11.2",
+    "mammoth": "^1.10.0",
+    "openai": "^5.16.0",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^5.4.54",
+    "pizzip": "^3.2.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-pdf": "^10.1.0"
+  },
+  "devDependencies": {
+    "@types/file-saver": "^2.0.7",
+    "@types/html2pdf.js": "^0.10.0",
+    "@types/react": "^18.2.15",
+    "@types/react-dom": "^18.2.7",
+    "eslint-plugin-react-hooks": "^7.0.0",
+    "react-scripts": "^5.0.1",
+    "typescript": "^4.9.5"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ],
+    "rules": {
+      "react-hooks/rules-of-hooks": "error",
+      "react-hooks/exhaustive-deps": "warn"
+    }
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "name": "docx-pdf-server",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "scripts": {
+    "start": "ts-node index.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.38.4",
+    "@types/pg": "^8.15.5",
+    "axios": "^1.12.2",
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "docx-pdf": "^0.0.1",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "libreoffice-convert": "^1.6.1",
+    "node-fetch": "^2.7.0",
+    "pg": "^8.16.3"
+  },
+  "devDependencies": {
+    "@types/body-parser": "^1.19.6",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+}
