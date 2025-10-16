@@ -7,7 +7,5 @@ export const sendToGPT = async function(req: string) {
         input: req,
     });
 
-    console.log(response.output_text);
-
     return response.output_text;
 }
