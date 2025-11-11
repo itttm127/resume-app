@@ -393,14 +393,15 @@ const MainScreen = () => {
 
   return (
     <Container sx={{ mt: 5 }}>
-      {loading && <Dialog fullWidth
-
-        open={loading}
-      >
-        <DialogContent>
-          <Typography textAlign={'center'}>Loading...</Typography>
-        </DialogContent>
-      </Dialog>}
+      {loading
+        &&
+        <Dialog fullWidth
+          open={loading}
+        >
+          <DialogContent>
+            <Typography textAlign={'center'}>Loading...</Typography>
+          </DialogContent>
+        </Dialog>}
       <Typography variant="h4" gutterBottom textAlign="center">
         📄 DOCX redactor
       </Typography>
