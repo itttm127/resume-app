@@ -40,6 +40,10 @@ const MainScreen = () => {
   const skillsInDocRef = useRef<string>(TEMPLATE_SKILLS);
 
   const skillChips = SKILLS.split(",").map((skill) => skill.trim()).filter(Boolean).slice(0, 12);
+  const API_BASE_URL =
+    import.meta.env.VITE_API_URL ||
+    "http://localhost:3001";
+
   const statusChips = [
     { label: "Template ready", active: Boolean(docHtml) },
     { label: "Context added", active: Boolean(companyName && companyText) },
@@ -82,7 +86,7 @@ const MainScreen = () => {
         .reduce((data, byte) => data + String.fromCharCode(byte), "")
     );
 
-    const response = await fetch("http://192.168.125.115:3001/api/convert-docx", {
+    const response = await fetch(`${API_BASE_URL}/api/convert-docx`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -463,11 +467,11 @@ const MainScreen = () => {
               <Typography variant="h4" fontWeight={600}>
                 AI Resume Tailor
               </Typography>
-              <Typography variant="body1" sx={{ mt: 1.5, maxWidth: "720px", opacity: 0.85 }}>
+              {/* <Typography variant="body1" sx={{ mt: 1.5, maxWidth: "720px", opacity: 0.85 }}>
                 Upload your base resume, paste the job description, and let the studio refresh your summary, skills, and optional cover letter with one click.
-              </Typography>
+              </Typography> */}
             </Box>
-            <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+            {/* <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
               {statusChips.map((chip) => (
                 <Chip
                   key={chip.label}
@@ -484,7 +488,7 @@ const MainScreen = () => {
                   }}
                 />
               ))}
-            </Stack>
+            </Stack> */}
           </Stack>
         </Paper>
 
@@ -588,7 +592,7 @@ const MainScreen = () => {
           </Grid>
           <Grid item xs={12} md={7}>
             <Stack spacing={3}>
-              <Paper
+              {/* <Paper
                 elevation={0}
                 sx={{
                   p: 3,
@@ -648,7 +652,7 @@ const MainScreen = () => {
                     </Box>
                   </Stack>
                 </Stack>
-              </Paper>
+              </Paper> */}
 
               <Paper
                 elevation={0}
