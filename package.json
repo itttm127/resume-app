@@ -2,13 +2,15 @@
   "name": "react-mui-starter",
   "private": true,
   "version": "0.0.1",
+  "type": "module",
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "dependencies": {
+    "@aspose/words": "^25.8.0",
+    "@mui/icons-material": "^5.14.20",
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",
     "@mui/material": "^5.14.20",
@@ -32,30 +34,8 @@
     "@types/html2pdf.js": "^0.10.0",
     "@types/react": "^18.2.15",
     "@types/react-dom": "^18.2.7",
-    "eslint-plugin-react-hooks": "^7.0.0",
-    "react-scripts": "^5.0.1",
-    "typescript": "^4.9.5"
-  },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ],
-    "rules": {
-      "react-hooks/rules-of-hooks": "error",
-      "react-hooks/exhaustive-deps": "warn"
-    }
+    "@vitejs/plugin-react": "^4.0.3",
+    "typescript": "^5.1.6",
+    "vite": "^4.4.9"
   }
 }

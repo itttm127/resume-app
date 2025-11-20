@@ -36,8 +36,8 @@ title Resume App Starter
 :: Первый npm start (там же, где запустили exe)
 start cmd /k "npm run dev"
 
-:: Второй npm start (в backend)
-cd /d "%~dp0backend"
+:: Второй npm start (в backend\server)
+cd /d "%~dp0backend\server"
 start cmd /k "npm run start"
 
 echo Оба процесса запущены!

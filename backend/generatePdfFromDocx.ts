@@ -10,7 +10,7 @@ export const generatePdfFromDocx = async (blob: Blob) => {
     body: JSON.stringify({ file: base64 }),
   });
 
-  if (!response.ok) throw new Error("Ошибка конвертации");
+  if (!response.ok) throw new Error("Conversion failed");
 
   const pdfBlob = await response.blob();
   return URL.createObjectURL(pdfBlob);

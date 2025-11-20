@@ -1,11 +1,21 @@
 // MainScreen.tsx
-import { Box, Button, Checkbox, Container, Dialog, DialogContent, FormControlLabel, TextField, Typography } from "@mui/material";
-import { useEffect, useState } from "react";
+import { Alert, Backdrop, Box, Button, Checkbox, Chip, Container, Divider, FormControlLabel, Grid, Paper, Stack, TextField, Typography, CircularProgress } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
+import {
+  AutoAwesomeRounded as AutoAwesomeRoundedIcon,
+  RefreshRounded as RefreshRoundedIcon,
+  FileDownloadRounded as FileDownloadRoundedIcon,
+  ContentCopyRounded as ContentCopyRoundedIcon,
+  CheckCircleRounded as CheckCircleRoundedIcon,
+  PendingOutlined as PendingOutlinedIcon
+} from "@mui/icons-material";
+import { useEffect, useRef, useState } from "react";
 import PizZip from "pizzip";
 import mammoth from "mammoth";
 import { sendToGPT } from "../api/gpt";
 
 const MainScreen = () => {
+  const theme = useTheme();
   const [docFile] = useState<string>("/data/Sergei_Petrov_resume.docx");
   const [companyText, setCompanyText] = useState("");
   const [companyName, setCompanyName] = useState("");
@@ -17,17 +27,44 @@ const MainScreen = () => {
   const [coverLetter, setCoverLetter] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const [SUMMARY, setSummary] = useState<string>("Senior Software Engineer with 6+ years of experience in architecting distributed web systems using JavaScript, TypeScript, React and Node.js. Focuses on reducing operational overhead through automation and performance enhancements. Delivered solutions that eliminated 80% of manual workflows and improved system throughput by 85% across production-grade environments. Experienced in aligning system architecture with business objectives and maintaining long-term maintainability across multi-service deployments.");
-  const [SKILLS, setSkills] = useState<string>("JavaScript, TypeScript, React, Next.js, Node.js, Express.js, Nest.js, HTML, CSS, SCSS, Tailwind CSS, Python, Django, PHP, Laravel, Symfony, Rust, React Native, Flutter, Three.js, GSAP, MySQL, PostgreSQL, MongoDB, Firebase, MSSQL, WordPress, Zapier, N8N, Make");
+  const TEMPLATE_SUMMARY =
+    "Senior Software Engineer with 6+ years of experience in architecting distributed web systems using JavaScript, TypeScript, React and Node.js. Focuses on reducing operational overhead through automation and performance enhancements. Delivered solutions that eliminated 80% of manual workflows and improved system throughput by 85% across production-grade environments. Experienced in aligning system architecture with business objectives and maintaining long-term maintainability across multi-service deployments.";
+  const TEMPLATE_SKILLS =
+    "JavaScript, TypeScript, React, Next.js, Node.js, Express.js, Nest.js, HTML, CSS, SCSS, Tailwind CSS, Python, Django, PHP, Laravel, Symfony, Rust, React Native, Flutter, Three.js, GSAP, MySQL, PostgreSQL, MongoDB, Firebase, MSSQL, WordPress, Zapier, N8N, Make";
+  const DEFAULT_SKILLS_DISPLAY =
+    "JavaScript, TypeScript, React.js, Next.js, Node.js, Express.js, Nest.js, HTML, CSS, SCSS, Tailwind CSS, Python, Django, PHP, Laravel, Symfony, Rust, React Native, Flutter, Three.js, GSAP, MySQL, PostgreSQL, MongoDB, Firebase, MSSQL, WordPress, Zapier, N8N, Make";
+
+  const [SUMMARY, setSummary] = useState<string>(TEMPLATE_SUMMARY);
+  const [SKILLS, setSkills] = useState<string>(DEFAULT_SKILLS_DISPLAY);
+  const summaryInDocRef = useRef<string>(TEMPLATE_SUMMARY);
+  const skillsInDocRef = useRef<string>(TEMPLATE_SKILLS);
+
+  const skillChips = SKILLS.split(",").map((skill) => skill.trim()).filter(Boolean).slice(0, 12);
+  const statusChips = [
+    { label: "Template ready", active: Boolean(docHtml) },
+    { label: "Context added", active: Boolean(companyName && companyText) },
+    { label: "PDF generated", active: Boolean(pdfUrl) }
+  ];
+  const readyForDownload = Boolean(pdfUrl);
+  const coverLetterReady = needCover && Boolean(coverLetter);
+  const gradientBg = "radial-gradient(circle at top, rgba(79,70,229,0.25), transparent 45%), radial-gradient(circle at 20% 20%, rgba(14,165,233,0.25), transparent 35%), linear-gradient(180deg, #030712 0%, #050b18 45%, #0b1222 100%)";
+  const heroGradient = "linear-gradient(135deg, #312e81 0%, #1d1b3a 55%, #111028 100%)";
+  const panelBg = "rgba(9, 12, 24, 0.9)";
+  const surfaceBg = "rgba(15, 23, 42, 0.9)";
+  const borderColor = "rgba(148, 163, 184, 0.18)";
 
 
   // Updated loadOriginal - saves the document to currentDoc
   const loadOriginal = async () => {
     const arrayBuffer = await fetch(docFile).then((r) => r.arrayBuffer());
-    setCurrentDoc(arrayBuffer); // <- сохраняем
+    setCurrentDoc(arrayBuffer); // <- store buffer
     const { value } = await mammoth.convertToHtml({ arrayBuffer });
     setDocHtml(value);
     await convertDocxToPdf(arrayBuffer, "Sergei_Petrov_resume.docx");
+    summaryInDocRef.current = TEMPLATE_SUMMARY;
+    skillsInDocRef.current = TEMPLATE_SKILLS;
+    setSummary(TEMPLATE_SUMMARY);
+    setSkills(DEFAULT_SKILLS_DISPLAY);
   };
 
 
@@ -36,7 +73,7 @@ const MainScreen = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [docFile]);
 
-  // ConvertAPI JSON (возвращаем Blob URL)
+  // ConvertAPI JSON (returns a Blob URL)
   // api/convert.ts
   async function convertDocxToPdf(arrayBuffer: ArrayBuffer, outputName: string, jobDesc?: string, company?: string) {
     // convert ArrayBuffer to base64
@@ -45,7 +82,7 @@ const MainScreen = () => {
         .reduce((data, byte) => data + String.fromCharCode(byte), "")
     );
 
-    const response = await fetch("http://localhost:3001/api/convert-docx", {
+    const response = await fetch("http://192.168.125.115:3001/api/convert-docx", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -57,7 +94,7 @@ const MainScreen = () => {
     });
 
     if (!response.ok) {
-      throw new Error("Ошибка при конвертации на сервере");
+      throw new Error("Conversion error on the server");
     }
 
     const pdfBlob = await response.blob();
@@ -110,7 +147,7 @@ const MainScreen = () => {
       .filter((c): c is string => c !== null)
       .join("");
 
-  // 1) Чистая функция: одна замена -> новый буфер
+  // 1) Pure function: one replacement -> new buffer
 
   const W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
   const XML_NS = "http://www.w3.org/XML/1998/namespace";
@@ -292,12 +329,12 @@ const MainScreen = () => {
     search?: string,
     replace?: string,
     baseBuffer?: ArrayBuffer
-  ): Promise<ArrayBuffer | void> => {
+  ): Promise<ArrayBuffer> => {
     try {
       const source = baseBuffer ?? currentDoc;
       if (!source) {
         if (!auto) alert("Document not loaded yet");
-        return;
+        throw new Error("Document not loaded yet");
       }
       const searchVal = search ?? searchText;
       const replaceVal = replace ?? replaceText;
@@ -315,69 +352,73 @@ const MainScreen = () => {
     } catch (err) {
       console.error("handleReplace error:", err);
       if (!auto) alert("Error processing file (see console).");
+      throw err;
     }
   };
 
   // 3) Sequential replacements in handleSearchKeywords: we push the buffer manually and commit once
   const handleSearchKeywords = async () => {
-    const coverLetterPromt = needCover ? `+ через ('---') Write a professional and engaging cover letter for the following job posting named ${companyName}.
+    const coverLetterPromt = needCover ? `+ separated by ('---') Write a professional and engaging cover letter for the following job posting named ${companyName}.
 
-  About me:  
-  I am Sergei Petrov an enthusiastic Full Stack Engineer with 4 years of experience in web development 
+  About me:
+  I am Sergei Petrov, an enthusiastic Full Stack Engineer with 6 years of experience in web development.
 
-  Style:  
-  - Keep the letter concise (3–4 paragraphs).  
-  - Start with enthusiasm about the company and role.  
-  - Highlight my fast learning, adaptability, and ability to combine technical and business skills.  
-  - Show how I can bring value and help the business grow.  
-  - End with a confident but polite closing, inviting to discuss my candidacy.
+  Style:
+  - Keep the letter concise (3–4 paragraphs).
+  - Start with enthusiasm about the company and role.
+  - Highlight my fast learning, adaptability, and ability to combine technical and business skills.
+  - Show how I can bring value and help the business grow.
+  - End with a confident but polite closing that invites further discussion.
   ` : '';
 
     try {
       setLoading(true);
-      const response = await sendToGPT(`Найди ключевые слова по вакансии (ats) для реальных SKILLS, только их, через запятую и пробел - ${companyText} + через разделение ('---') не меняя структуры и смысла поменяй под вакансию мое SUMMARY лимит 65 слов (560 символов) (EN), чтобы были видны заслуги - ${SUMMARY} ${coverLetterPromt}`)
+      const response = await sendToGPT(
+        `Find ATS-friendly keywords for real SKILLS only base on ${SKILLS}, separated by a comma and a space - ${companyText} + separated by ('---') rewrite my SUMMARY for the vacancy without changing the structure or meaning, limit 65 words (560 characters) in EN so that achievements are visible - ${SUMMARY} ${coverLetterPromt}`
+      );
       const [responseKeywords, responseSummary, responseLetter] = response.split('---');
-
-      if (responseLetter) {
-        setCoverLetter(responseLetter)
-      }
-
-      // setKeywords(response);
-
-      const search1 = SUMMARY;
-      const replace1 = responseSummary.trim();
-
-      const search2 = SKILLS;
-      const replace2 = responseKeywords.trim();
 
       if (!currentDoc) {
         console.warn("Document not loaded yet — skipping replacements.");
         return;
       }
 
-      // For clarity, update the fields (does not affect the buffer itself)
-      setSearchText(search1);
-      setReplaceText(replace1);
+      if (responseLetter) {
+        setCoverLetter(responseLetter);
+      }
 
-      // first replacement on top of the current buffer
-      let buf = await handleReplace(true, search1, replace1, currentDoc) as ArrayBuffer;
+      const replaceSummary = responseSummary.trim();
+      const replaceSkills = responseKeywords.trim();
 
-      // second replacement on top of the result of the first
-      setSearchText(search2);
-      setReplaceText(replace2);
-      buf = (await handleReplace(true, search2, replace2, buf)) as ArrayBuffer;
+      // Pinned search strings that reflect what's currently stored in the DOCX.
+      const searchSummary = summaryInDocRef.current;
+      const searchSkills = skillsInDocRef.current;
 
-      // one commit of state/preview/pdf
-      setCurrentDoc(buf);
-      const { value: newHtml } = await mammoth.convertToHtml({ arrayBuffer: buf });
+      setSearchText(searchSummary);
+      setReplaceText(replaceSummary);
+      let workingBuffer = (await handleReplace(true, searchSummary, replaceSummary, currentDoc)) as ArrayBuffer;
+
+      setSearchText(searchSkills);
+      setReplaceText(replaceSkills);
+      workingBuffer = (await handleReplace(true, searchSkills, replaceSkills, workingBuffer)) as ArrayBuffer;
+
+      summaryInDocRef.current = replaceSummary;
+      skillsInDocRef.current = replaceSkills;
+
+      setCurrentDoc(workingBuffer);
+      const { value: newHtml } = await mammoth.convertToHtml({ arrayBuffer: workingBuffer });
       setDocHtml(newHtml);
-      await convertDocxToPdf(buf, "resume_replaced.docx");
-      setTimeout(() => setLoading(false), 0);
+      await convertDocxToPdf(workingBuffer, "resume_replaced.docx");
 
-      setSummary(replace1);
-      setSkills(replace2);
-    } catch (err) {
+      setSummary(replaceSummary);
+      setSkills(replaceSkills);
+    } catch (err: any) {
       console.error("handleSearchKeywords error:", err);
+      alert(err?.message?.includes("Phrase not found")
+        ? "Could not locate the original summary/skills inside the DOCX. Please ensure you have not manually edited the template text."
+        : "Failed to tailor the resume. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -391,117 +432,295 @@ const MainScreen = () => {
     a.click();
   };
 
+  const handleCopyCoverLetter = () => {
+    if (!coverLetter) return;
+    navigator.clipboard.writeText(coverLetter);
+  };
+
   return (
-    <Container sx={{ mt: 5 }}>
-      {loading
-        &&
-        <Dialog fullWidth
-          open={loading}
+    <Box
+      sx={{
+        minHeight: "100vh",
+        background: gradientBg,
+        py: { xs: 4, md: 8 }
+      }}
+    >
+      <Container maxWidth="xl">
+        <Paper
+          elevation={0}
+          sx={{
+            p: { xs: 3, md: 5 },
+            borderRadius: 5,
+            mb: 5,
+            background: heroGradient,
+            color: "#fff",
+            position: "relative",
+            overflow: "hidden"
+          }}
         >
-          <DialogContent>
-            <Typography textAlign={'center'}>Loading...</Typography>
-          </DialogContent>
-        </Dialog>}
-      <Typography variant="h4" gutterBottom textAlign="center">
-        📄 DOCX redactor
-      </Typography>
-
-      <Box mt={2}>
-        <TextField
-          label="Company name"
-          value={companyName}
-          onChange={(e) => setCompanyName(e.target.value)}
-          sx={{ mb: 2, width: '50%' }}
-        />
-        <TextField
-          multiline
-          minRows={3} // minimum rows
-          maxRows={20}
-          label="Job posting text"
-          fullWidth
-          value={companyText}
-          onChange={(e) => setCompanyText(e.target.value)}
-        />
-        {needCover && (
-          <>
+          <Stack spacing={3}>
             <Box>
-              <TextField
-                multiline
-                sx={{ mt: 3 }}
-                minRows={3}
-                maxRows={20}
-                label="Cover letter"
-                fullWidth
-                value={coverLetter}
-              />
-              <Button
-                sx={{ mt: 2 }}
-                variant="outlined"
-                onClick={() => navigator.clipboard.writeText(coverLetter)}
+              <Typography variant="h4" fontWeight={600}>
+                AI Resume Tailor
+              </Typography>
+              <Typography variant="body1" sx={{ mt: 1.5, maxWidth: "720px", opacity: 0.85 }}>
+                Upload your base resume, paste the job description, and let the studio refresh your summary, skills, and optional cover letter with one click.
+              </Typography>
+            </Box>
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+              {statusChips.map((chip) => (
+                <Chip
+                  key={chip.label}
+                  label={chip.label}
+                  icon={chip.active ? <CheckCircleRoundedIcon /> : <PendingOutlinedIcon />}
+                  color={chip.active ? "success" : "default"}
+                  variant={chip.active ? "filled" : "outlined"}
+                  sx={{
+                    color: chip.active ? undefined : "rgba(226,232,240,0.86)",
+                    borderColor: chip.active ? "rgba(209,250,229,0.6)" : "rgba(148,163,184,0.5)",
+                    "& .MuiChip-icon": {
+                      color: chip.active ? undefined : "rgba(226,232,240,0.86)"
+                    }
+                  }}
+                />
+              ))}
+            </Stack>
+          </Stack>
+        </Paper>
+
+        <Grid container spacing={4}>
+          <Grid item xs={12} md={5}>
+            <Paper
+              elevation={0}
+              sx={{
+                p: 3,
+                borderRadius: 4,
+                bgcolor: panelBg,
+                border: `1px solid ${borderColor}`
+              }}
+            >
+              <Stack spacing={3}>
+                <Box>
+                  <Typography variant="h6" fontWeight={600}>
+                    Job context
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                    Provide the role details so the assistant can rephrase your resume with relevant language.
+                  </Typography>
+                </Box>
+                <TextField
+                  variant="filled"
+                  label="Company name"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  placeholder="Acme Robotics"
+                  fullWidth
+                />
+                <TextField
+                  multiline
+                  minRows={5}
+                  maxRows={18}
+                  variant="filled"
+                  label="Job posting text"
+                  value={companyText}
+                  onChange={(e) => setCompanyText(e.target.value)}
+                  placeholder="Paste the full job description here..."
+                  fullWidth
+                />
+                <Divider />
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={needCover}
+                      onChange={(e) => setNeedCover(e.target.checked)}
+                    />
+                  }
+                  label="Also craft a cover letter"
+                />
+                {needCover && (
+                  <Stack spacing={1.5}>
+                    <TextField
+                      multiline
+                      minRows={5}
+                      maxRows={18}
+                      variant="filled"
+                      label="Cover letter"
+                      fullWidth
+                      value={coverLetter}
+                      placeholder="Your tailored cover letter will appear here after generation."
+                      InputProps={{ readOnly: true }}
+                    />
+                    <Button
+                      variant="outlined"
+                      startIcon={<ContentCopyRoundedIcon />}
+                      onClick={handleCopyCoverLetter}
+                      disabled={!coverLetterReady}
+                    >
+                      Copy cover letter
+                    </Button>
+                  </Stack>
+                )}
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                  <Button
+                    fullWidth
+                    size="large"
+                    variant="contained"
+                    startIcon={<AutoAwesomeRoundedIcon />}
+                    onClick={() => handleSearchKeywords()}
+                    disabled={loading}
+                  >
+                    Generate tailored resume
+                  </Button>
+                  <Button
+                    fullWidth
+                    size="large"
+                    variant="outlined"
+                    color="secondary"
+                    startIcon={<RefreshRoundedIcon />}
+                    onClick={loadOriginal}
+                    disabled={loading}
+                  >
+                    Reset to original
+                  </Button>
+                </Stack>
+              </Stack>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} md={7}>
+            <Stack spacing={3}>
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 3,
+                  borderRadius: 4,
+                  border: `1px solid ${borderColor}`,
+                  bgcolor: panelBg
+                }}
               >
-                Copy all
-              </Button>
-            </Box>
-          </>
-        )}
+                <Stack spacing={2}>
+                  <Box>
+                    <Typography variant="h6" fontWeight={600}>
+                      Live resume preview
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Changes are rendered from the DOCX file after each update.
+                    </Typography>
+                  </Box>
+                  <Box
+                    sx={{
+                      borderRadius: 3,
+                      border: `1px solid ${borderColor}`,
+                      background: surfaceBg,
+                      p: 2,
+                      maxHeight: 360,
+                      overflowY: "auto"
+                    }}
+                    dangerouslySetInnerHTML={{ __html: docHtml }}
+                  />
+                  <Divider />
+                  <Stack spacing={2}>
+                    <Box>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Current summary
+                      </Typography>
+                      <Typography variant="body1" sx={{ mt: 0.5 }}>
+                        {SUMMARY}
+                      </Typography>
+                    </Box>
+                    <Box>
+                      <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+                        Highlighted skills
+                      </Typography>
+                      <Stack direction="row" flexWrap="wrap" gap={1}>
+                        {skillChips.map((skill) => (
+                          <Chip
+                            key={skill}
+                            label={skill}
+                            variant="outlined"
+                            size="small"
+                            sx={{
+                              borderColor,
+                              color: theme.palette.text.secondary
+                            }}
+                          />
+                        ))}
+                      </Stack>
+                    </Box>
+                  </Stack>
+                </Stack>
+              </Paper>
 
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 3,
+                  borderRadius: 4,
+                  border: `1px solid ${borderColor}`,
+                  bgcolor: panelBg
+                }}
+              >
+                <Stack spacing={2}>
+                  <Box display="flex" justifyContent="space-between" alignItems="center">
+                    <Box>
+                      <Typography variant="h6" fontWeight={600}>
+                        PDF preview
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Export-ready document generated on the server.
+                      </Typography>
+                    </Box>
+                    <Button
+                      variant="contained"
+                      startIcon={<FileDownloadRoundedIcon />}
+                      onClick={downloadPdf}
+                      disabled={!readyForDownload}
+                    >
+                      Download PDF
+                    </Button>
+                  </Box>
+                  {pdfUrl ? (
+                    <Box
+                      sx={{
+                        border: `1px solid ${borderColor}`,
+                        borderRadius: 3,
+                        overflow: "hidden",
+                        minHeight: 320,
+                        background: surfaceBg
+                      }}
+                    >
+                      <iframe
+                        src={pdfUrl}
+                        width="100%"
+                        height="420px"
+                        style={{ border: "none", display: "block" }}
+                      />
+                    </Box>
+                  ) : (
+                    <Alert
+                      severity="info"
+                      variant="outlined"
+                      sx={{ borderColor, color: theme.palette.text.secondary }}
+                    >
+                      Run “Generate tailored resume” to create a fresh PDF preview.
+                    </Alert>
+                  )}
+                </Stack>
+              </Paper>
+            </Stack>
+          </Grid>
+        </Grid>
+      </Container>
 
-        <FormControlLabel
-          sx={{ mt: 1 }}
-          control={
-            <Checkbox
-              checked={needCover}
-              onChange={(e) => setNeedCover(e.target.checked)}
-            />
-          }
-          label="Need cover letter?"
-        />
-      </Box>
-
-      <Box mt={3} textAlign="center">
-        <Button variant="contained" onClick={() => handleSearchKeywords()}>
-          Start
-        </Button>
-      </Box>
-
-      <Typography variant="h5" sx={{ mt: 4 }}>
-        📖 Text preview:
-      </Typography>
-      <Box
-        sx={{
-          border: "1px solid #ccc",
-          p: 2,
-          mt: 2,
-          background: "#fafafa",
-          maxHeight: "400px",
-          overflowY: "auto",
-        }}
-        dangerouslySetInnerHTML={{ __html: docHtml }}
-      />
-
-      {pdfUrl && (
-        <>
-          <Typography variant="h5" sx={{ mt: 4 }}>
-            📑 PDF Preview:
-          </Typography>
-
-          <Box sx={{ border: "1px solid #ccc", mt: 2 }}>
-            <iframe
-              src={pdfUrl}
-              width="100%"
-              height="500px"
-              style={{ border: "none", display: "block" }}
-            />
-            <Box sx={{ p: 2, textAlign: "center", borderTop: "1px solid #eee", background: "#fff" }}>
-              <Button variant="contained" onClick={downloadPdf}>
-                💾 Download PDF
-              </Button>
-            </Box>
-          </Box>
-        </>
-      )}
-
-    </Container>
+      <Backdrop
+        sx={{ color: "#fff", zIndex: (theme) => theme.zIndex.drawer + 1, backdropFilter: "blur(2px)" }}
+        open={loading}
+      >
+        <Stack spacing={2} alignItems="center">
+          <CircularProgress color="inherit" />
+          <Typography>Crafting your tailored resume...</Typography>
+        </Stack>
+      </Backdrop>
+    </Box>
   );
 };
 

@@ -2,8 +2,8 @@ import express from "express";
 import cors from "cors";
 import libre from "libreoffice-convert";
 import { JobService } from "./services/jobService";
-import { DatabaseService } from "./services/databaseService";
-import { PostgresService } from "./services/postgresService";
+import { MongoService } from "./services/mongoService";
+import type { JobInput } from "./config/database";
 import dotenv from "dotenv";
 
 // Load environment variables
@@ -16,17 +16,17 @@ app.use(express.json({ limit: "50mb" }));
 app.post("/api/convert-docx", async (req, res) => {
   try {
     const { file, jobDescription, companyName, fileName } = req.body;
-    if (!file) return res.status(400).send("Нет файла");
+    if (!file) return res.status(400).send("No file provided");
 
     const docxBuffer = Buffer.from(file, "base64");
 
     libre.convert(docxBuffer, ".pdf", undefined, async (err, pdfBuffer) => {
       if (err) {
         console.error(err);
-        return res.status(500).send("Ошибка конвертации");
+        return res.status(500).send("Conversion failed");
       }
 
-      // Save job data to Supabase if provided
+      // Save job data to MongoDB if provided
       if (jobDescription && companyName && fileName) {
         try {
           await JobService.createJob({
@@ -35,7 +35,7 @@ app.post("/api/convert-docx", async (req, res) => {
             file_name: fileName
           });
         } catch (dbError) {
-          console.error('Error saving to Supabase:', dbError);
+          console.error('Error saving to MongoDB:', dbError);
           // Don't fail the request if DB save fails
         }
       }
@@ -50,7 +50,7 @@ app.post("/api/convert-docx", async (req, res) => {
     });
   } catch (e) {
     console.error(e);
-    res.status(500).send("Ошибка сервера");
+    res.status(500).send("Server error");
   }
 });
 
@@ -68,8 +68,8 @@ app.get("/api/jobs", async (req, res) => {
 // Get job application by ID
 app.get("/api/jobs/:id", async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
-    if (isNaN(id)) {
+    const { id } = req.params;
+    if (!id || !MongoService.isValidId(id)) {
       return res.status(400).json({ error: 'Invalid job ID' });
     }
 
@@ -87,19 +87,22 @@ app.get("/api/jobs/:id", async (req, res) => {
 // Update job application
 app.put("/api/jobs/:id", async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
-    if (isNaN(id)) {
+    const { id } = req.params;
+    if (!id || !MongoService.isValidId(id)) {
       return res.status(400).json({ error: 'Invalid job ID' });
     }
 
     const { job_description, company_name, file_name } = req.body;
-    const updates: any = {};
+    const updates: Partial<JobInput> = {};
     
     if (job_description) updates.job_description = job_description;
     if (company_name) updates.company_name = company_name;
     if (file_name) updates.file_name = file_name;
 
     const job = await JobService.updateJob(id, updates);
+    if (!job) {
+      return res.status(404).json({ error: 'Job not found' });
+    }
     res.json(job);
   } catch (error) {
     console.error('Error updating job:', error);
@@ -110,12 +113,15 @@ app.put("/api/jobs/:id", async (req, res) => {
 // Delete job application
 app.delete("/api/jobs/:id", async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
-    if (isNaN(id)) {
+    const { id } = req.params;
+    if (!id || !MongoService.isValidId(id)) {
       return res.status(400).json({ error: 'Invalid job ID' });
     }
 
     const result = await JobService.deleteJob(id);
+    if (!result) {
+      return res.status(404).json({ error: 'Job not found' });
+    }
     res.json(result);
   } catch (error) {
     console.error('Error deleting job:', error);
@@ -128,30 +134,16 @@ async function initializeDatabase() {
   try {
     console.log('Initializing database...');
     
-    // Try PostgreSQL connection first
-    console.log('Testing PostgreSQL connection...');
-    const pgConnected = await PostgresService.testConnection();
-    
-    if (pgConnected) {
-      console.log('✅ PostgreSQL connection successful');
-      await PostgresService.ensureTableExists();
-      console.log('✅ Database initialization completed successfully via PostgreSQL.');
-      return;
-    }
-    
-    // Fallback to Supabase
-    console.log('PostgreSQL failed, testing Supabase connection...');
-    const isConnected = await DatabaseService.testConnectivity();
+    const isConnected = await MongoService.testConnection();
     if (!isConnected) {
-      console.warn('⚠️  Both PostgreSQL and Supabase connectivity tests failed.');
+      console.warn('⚠️  MongoDB connectivity test failed.');
       console.warn('Database operations may not work properly.');
       console.warn('Please check your database configuration and network connection.');
       return;
     }
-    
-    // If Supabase connectivity is good, ensure table exists
-    await DatabaseService.ensureTableExists();
-    console.log('✅ Database initialization completed successfully via Supabase.');
+
+    await MongoService.ensureCollectionExists();
+    console.log('✅ Database initialization completed successfully via MongoDB.');
   } catch (error) {
     console.error('❌ Database initialization failed:', error);
     console.log('Server will continue to run, but database operations may fail.');

@@ -4,12 +4,41 @@ import MainScreen from "./apps/main-creen";
 
 const theme = createTheme({
   palette: {
-    mode: "light",
+    mode: "dark",
     primary: {
-      main: "#1976d2",
+      main: "#8b5cf6",
     },
     secondary: {
-      main: "#9c27b0",
+      main: "#14b8a6",
+    },
+    background: {
+      default: "#030712",
+      paper: "#0f172a",
+    },
+    text: {
+      primary: "#f8fafc",
+      secondary: "#94a3b8",
+    },
+  },
+  shape: {
+    borderRadius: 16,
+  },
+  components: {
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          backgroundImage: "none",
+        },
+      },
+    },
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          textTransform: "none",
+          borderRadius: 14,
+          fontWeight: 600,
+        },
+      },
     },
   },
 });
